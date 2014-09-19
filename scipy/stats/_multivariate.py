@@ -7,7 +7,7 @@ import numpy as np
 import scipy.linalg
 from scipy.misc import doccer
 from scipy.special import gammaln
-
+from . import distributions
 
 __all__ = ['multivariate_normal', 'dirichlet']
 
@@ -882,3 +882,55 @@ for name in ['logpdf', 'pdf', 'rvs', 'mean', 'var', 'entropy']:
     method_frozen.__doc__ = doccer.docformat(
         method.__doc__, dirichlet_docdict_noparams)
     method.__doc__ = doccer.docformat(method.__doc__, dirichlet_docdict_params)
+
+class copula:    
+    """
+    A copula class from which random numbers etc can be generated.
+    """
+    #TODO add in key word arguments e.g. corrMatrix, theta, nDims
+    def __init__(self, copType = 'gaussian', corrMatrix = 1):
+        self.copType = copType
+        if copType in [ 'gumbel', 'clayton' ]:
+            self.__class__ = _archimedean_copula
+            self.__init__(corrMatrix)
+        elif copType in ['gaussian']:
+            self.__class__ = _elliptical_copula
+            self.__init__(corrMatrix)
+
+##########################
+# Archimedian Copulae
+##########################
+
+class _archimedean_copula(copula):
+    def __init__(self, theta, nDim):
+        self.theta = theta
+        self.nDim = nDim
+    #TODO add in random number generation
+ 
+######################
+# Elliptical copulae
+#######################               
+class _elliptical_copula(copula):
+    """
+    Elliptical copulae e.g. gaussian, t
+    """
+    def __init__(self, corrMatrix):
+        self.corrMatrix = corrMatrix
+        if self.copType == 'gaussian':
+            self.__class__ = gaussian_copula
+            self.__init__()
+                      
+class gaussian_copula(_elliptical_copula):
+    """ 
+    The classic Gaussian copula
+    """
+    
+    #TODO overload this so that it can be called directly
+    def __init__(self):
+        self.jointDist = multivariate_normal
+        self.marginalDist = distributions.norm
+        
+    def rvs(self, n = 1):
+        return self.marginalDist.cdf(self.jointDist.rvs(mean=0, 
+                                                        cov = self.corrMatrix,
+                                                        size = n))                                                      
