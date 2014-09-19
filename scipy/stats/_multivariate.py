@@ -7,7 +7,7 @@ import numpy as np
 import scipy.linalg
 from scipy.misc import doccer
 from scipy.special import gammaln
-from . import distributions
+from scipy.stats import distributions
 
 __all__ = ['multivariate_normal', 'dirichlet']
 
@@ -887,14 +887,19 @@ class copula:
     """
     A copula class from which random numbers etc can be generated.
     """
-    #TODO add in key word arguments e.g. corrMatrix, theta, nDims
-    def __init__(self, copType = 'gaussian', corrMatrix = 1):
+    
+    #TODO put in some error handling around the keywords
+    def __init__(self, copType = 'gaussian', **keywords):
         self.copType = copType
         if copType in [ 'gumbel', 'clayton' ]:
             self.__class__ = _archimedean_copula
-            self.__init__(corrMatrix)
+            theta = keywords['theta']
+            nDim = keywords['nDim']
+            self.__init__(theta, nDim)
+            
         elif copType in ['gaussian']:
-            self.__class__ = _elliptical_copula
+            self.__class__ = _elliptical_copula     
+            corrMatrix = keywords['corrMatrix']
             self.__init__(corrMatrix)
 
 ##########################
@@ -905,7 +910,7 @@ class _archimedean_copula(copula):
     def __init__(self, theta, nDim):
         self.theta = theta
         self.nDim = nDim
-    #TODO add in random number generation
+    #TODO add in random number generation -see http://www.yieldcurve.com/mktresearch/files/toolsforsamplingmultivariatearchimedeancopulas.pdf
  
 ######################
 # Elliptical copulae
@@ -920,17 +925,26 @@ class _elliptical_copula(copula):
             self.__class__ = gaussian_copula
             self.__init__()
                       
-class gaussian_copula(_elliptical_copula):
+class gaussian_copula_gen(_elliptical_copula):
     """ 
     The classic Gaussian copula
     """
+    jointDist = multivariate_normal
+    marginalDist = distributions.norm
     
-    #TODO overload this so that it can be called directly
-    def __init__(self):
-        self.jointDist = multivariate_normal
-        self.marginalDist = distributions.norm
+    def __init__(self):                    
+        pass
         
-    def rvs(self, n = 1):
-        return self.marginalDist.cdf(self.jointDist.rvs(mean=0, 
-                                                        cov = self.corrMatrix,
-                                                        size = n))                                                      
+    #use keywords to allow it to be called directly
+    def rvs(self, n = 1, **keywords):
+        if 'corrMatrix' in keywords and len(keywords) > 0:
+            self.corrMatrix = keywords['corrMatrix']
+        elif len(keywords) > 0 and 'corrMatrix' not in keywords or \
+            len(keywords) == 0 and not hasattr(self, 'corrMatrix'):
+            raise ValueError("Must have 'corrMatrix' keyword argument")
+        
+        return self.marginalDist.cdf(self.jointDist.rvs(mean=None, 
+                                              cov = self.corrMatrix,
+                                                    size = n))   
+                                                    
+gaussian_copula = gaussian_copula_gen()
