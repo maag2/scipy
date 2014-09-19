@@ -3444,7 +3444,12 @@ def ttest_rel(a, b, axis=0):
 
     return t, prob
 
-
+def ad2test():
+    """
+    The Anderson Darling Test. This is where I'll put it. Does spyder wrap
+    
+    """    
+    
 def kstest(rvs, cdf, args=(), N=20, alternative='two-sided', mode='approx'):
     """
     Perform the Kolmogorov-Smirnov test for goodness of fit.
